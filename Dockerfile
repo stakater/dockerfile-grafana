@@ -4,6 +4,9 @@ MAINTAINER          Rasheed Amir <rasheed@aurorasolutions.io>
 
 ARG                 GRAFANA_VERSION
 
+# for installing kairosdb datasource
+ENV                 GF_INSTALL_PLUGINS=grafana-kairosdb-datasource
+
 RUN                 apt-get update && \
                     apt-get -y --no-install-recommends install libfontconfig curl ca-certificates && \
                     apt-get clean && \
@@ -17,9 +20,6 @@ RUN                 apt-get update && \
                     rm -rf /var/lib/apt/lists/*
 
 VOLUME              ["/var/lib/grafana", "/var/lib/grafana/plugins", "/var/log/grafana", "/etc/grafana"]
-
-# install kairosdb datasource
-RUN                 grafana-cli plugins install grafana-kairosdb-datasource
 
 EXPOSE              3000
 

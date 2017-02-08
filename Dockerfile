@@ -1,5 +1,5 @@
 # From & maintainer
-FROM                stakater/base:latest
+FROM                stakater/base-alpine:latest
 MAINTAINER          Rasheed Amir <rasheed@aurorasolutions.io>
 
 ARG                 GRAFANA_VERSION
@@ -7,22 +7,18 @@ ARG                 GRAFANA_VERSION
 # for installing kairosdb datasource
 ENV                 GF_INSTALL_PLUGINS=grafana-kairosdb-datasource
 
-RUN                 apt-get update && \
-                    apt-get -y --no-install-recommends install libfontconfig curl ca-certificates && \
-                    apt-get clean && \
-                    curl https://grafanarel.s3.amazonaws.com/builds/grafana_${GRAFANA_VERSION}_amd64.deb > /tmp/grafana.deb && \
-                    dpkg -i /tmp/grafana.deb && \
-                    rm /tmp/grafana.deb && \
-                    curl -L https://github.com/tianon/gosu/releases/download/1.7/gosu-amd64 > /usr/sbin/gosu && \
-                    chmod +x /usr/sbin/gosu && \
-                    apt-get remove -y curl && \
-                    apt-get autoremove -y && \
-                    rm -rf /var/lib/apt/lists/*
+RUN                 apk add --no-cache openssl
+RUN                 wget --no-check-certificate -q -O /etc/apk/keys/sgerrand.rsa.pub https://raw.githubusercontent.com/sgerrand/alpine-pkg-glibc/master/sgerrand.rsa.pub
+RUN                 wget --no-check-certificate https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.23-r3/glibc-2.23-r3.apk
+RUN                 apk add glibc-2.23-r3.apk
+RUN                 wget --no-check-certificate https://grafanarel.s3.amazonaws.com/builds/grafana-$GRAFANA_VERSION.linux-x64.tar.gz
+RUN                 tar -xzf grafana-$GRAFANA_VERSION.linux-x64.tar.gz
+RUN                 mv grafana-$GRAFANA_VERSION/ grafana/
+RUN                 sed -i 's,data = data,data = data/db,g' grafana/conf/defaults.ini
+RUN                 rm grafana-$GRAFANA_VERSION.linux-x64.tar.gz /etc/apk/keys/sgerrand.rsa.pub glibc-2.23-r3.apk
+RUN                 apk del openssl
 
-VOLUME              ["/var/lib/grafana", "/var/lib/grafana/plugins", "/var/log/grafana", "/etc/grafana"]
+VOLUME              ["/grafana/conf", "/grafana/data/db", "/grafana/data/log", "/grafana/data/plugins"]
+WORKDIR             /grafana
+CMD                 ["./bin/grafana-server"]
 
-EXPOSE              3000
-
-COPY                ./run.sh /run.sh
-
-ENTRYPOINT          ["/run.sh"]
